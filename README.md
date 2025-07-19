@@ -1,7 +1,7 @@
-# Nito-Whitepaper-v1.0
+# Nito-Whitepaper
 
 
-The new Nito whitepaper (v1.0 – July 2025) is out!
+The new Nito whitepaper is out!
 
 What I need from you:
 

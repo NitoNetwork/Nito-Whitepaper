@@ -2,7 +2,7 @@
 
 The official whitepaper for the **NITO** blockchain is now live.
 
-📄 **Version:** 1.1.1  
+📄 **Version:** 1.1
 📅 **Released:** July 2025
 
 ---

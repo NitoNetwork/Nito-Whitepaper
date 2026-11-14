@@ -311,7 +311,7 @@
       <nav class="header-nav" aria-label="Main navigation">
         <a class="header-read" href="#reader">Read the paper</a>
         <a class="network-link" href="https://nito.network" target="_blank" rel="noopener">Nito Network ↗</a>
-        <a class="header-download" href="Nito_Whitepaper.pdf?v=00baace82a6e" download="Nito_Whitepaper.pdf"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download PDF</a>
+        <a class="header-download" href="Nito_Whitepaper.pdf?v=4b3af888a7da" download="Nito_Whitepaper.pdf"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download PDF</a>
       </nav>
     </div>
   </header>
@@ -324,9 +324,9 @@
           <p class="hero-description">How the network works, how NITO is issued, and how private payments are verified.</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#overview" data-section="overview">Read the whitepaper<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-            <a class="text-action" href="Nito_Whitepaper.pdf?v=00baace82a6e" download="Nito_Whitepaper.pdf"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download PDF</a>
+            <a class="text-action" href="Nito_Whitepaper.pdf?v=4b3af888a7da" download="Nito_Whitepaper.pdf"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download PDF</a>
           </div>
-          <p class="hero-meta"><span>19 pages</span><span>English</span><span>Open to everyone</span></p>
+          <p class="hero-meta"><span>20 pages</span><span>English</span><span>Open to everyone</span></p>
         </div>
         <div class="book-stage" aria-hidden="true">
           <div class="scene-grid"></div>
@@ -340,7 +340,7 @@
     <section class="shell reading-section" id="reader" aria-labelledby="reading-title">
       <div class="reading-heading">
         <div><h2 id="reading-title">Read the whitepaper</h2><p>Start at the beginning, or explore a chapter.</p></div>
-        <a class="pdf-link" href="https://mozilla.github.io/pdf.js/web/viewer.html?file=https://nitonetwork.github.io/Nito-Whitepaper/Nito_Whitepaper.pdf?v=00baace82a6e" target="_blank" rel="noopener">Open PDF reader<svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
+        <a class="pdf-link" href="https://mozilla.github.io/pdf.js/web/viewer.html?file=https://nitonetwork.github.io/Nito-Whitepaper/Nito_Whitepaper.pdf?v=4b3af888a7da" target="_blank" rel="noopener">Open PDF reader<svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
       </div>
       <div class="reader-grid">
         <aside class="sidebar" aria-label="Whitepaper navigation">
@@ -452,8 +452,19 @@
 <p>The subsidy eventually reaches zero. Under these rules, mining revenue then comes from transaction fees. The protocol does not provide a perpetual tail emission or a mandatory treasury share. Future fee demand and the resulting level of mining security are economic outcomes, not guarantees of the issuance formula.</p></section>
 <section class="chapter" id="mining-capacity-and-fees" data-title="5. Mining, Capacity and Fees" aria-labelledby="mining-capacity-and-fees-title"><h2 id="mining-capacity-and-fees-title" tabindex="-1">5. Mining, Capacity and Fees</h2><h3>5.1 Block Rewards</h3>
 <p>The first transaction in each block is the coinbase. Its total output value may not exceed that height's subsidy plus the fees of the other transactions. Coinbase transactions are transparent and cannot contain an Orchard bundle. Private payments introduce neither a separate mining reward nor a required payment to a privacy service.</p>
-<p>SHA-256 mining hardware hashes the same header format for transparent and private transactions. Mining pools need validating software that understands Orchard and must preserve the complete transactions supplied by their node. Their block construction must respect transaction dependencies, the transaction Merkle root and the witness commitment. Miners verify payment proofs through their node; they do not produce those proofs on behalf of senders.</p>
-<h3>5.2 Weight and Virtual Size</h3>
+<p>SHA-256 mining hardware hashes the same header format for transparent and private transactions. A pool must upgrade its backing node to Nito Core v4 before activation. That node validates Orchard proofs and supplies valid transactions through <code>getblocktemplate</code> (GBT). Pool software that already handles the standard GBT and SegWit requirements below can operate without an Orchard-specific modification. It does not need to generate or independently verify the payment proofs supplied by senders.</p>
+<h3>5.2 Pool Block Construction</h3>
+<p><strong>Complete transactions.</strong> The pool requests GBT with <code>rules: ["segwit"]</code> and copies each selected entry's <code>data</code> bytes unchanged into the submitted block. Those bytes include Orchard effects, proofs and signatures. Treating them as opaque data avoids the need for an Orchard-aware transaction parser. A parser that rejects, strips or rewrites unfamiliar fields is not sufficient.</p>
+<p><strong>Transaction identifiers.</strong> The header's Merkle root uses the ordered <code>txid</code> values, preceded by the actual coinbase txid. The separate GBT <code>hash</code> field is the witness transaction identifier, or wtxid. It includes authorization data and is used for the witness commitment. Hashing the complete <code>data</code> bytes is not a substitute for the stripped <code>txid</code>.</p>
+<p><strong>Witness commitment.</strong> For an unchanged transaction list and order, the pool can include Core's <code>default_witness_commitment</code> script in a zero-value coinbase output. The coinbase input witness must contain exactly one 32-byte item; Core's default commitment uses 32 zero bytes. The witness Merkle tree uses the transactions' wtxids with a zero-valued coinbase leaf. Its commitment is:</p>
+<p class="formula"><code>commitment = SHA256d(witness_root || witness_reserved_value)</code></p>
+<p>Here <code>||</code> denotes byte concatenation. The output script is the prefix <code>6a24aa21a9ed</code> followed by the 32-byte commitment. Changing the coinbase extra nonce changes its txid and requires a new header Merkle root, but does not change the zero-valued witness-tree leaf.</p>
+<p><strong>Selection and fees.</strong> Removing or reordering transactions requires preserving parent-before-child dependencies and rebuilding the affected Merkle roots and witness commitment. The <code>depends</code> field identifies parents by their 1-based positions in the template's transaction array. Core's <code>coinbasevalue</code> is the maximum reward for the complete template. For a reduced selection, the pool must deduct omitted transaction fees, using the GBT <code>fee</code> amounts in nitoshis. Transparent inputs and outputs alone do not determine an Orchard transaction's fee; Section 7 gives the full value equation. The final block, including the pool's coinbase, must respect the template's <code>weightlimit</code>, <code>sigoplimit</code> and <code>sizelimit</code>.</p>
+<h3>5.3 Pool Verification and Payouts</h3>
+<p>An operator can check block construction on testnet or regtest with templates containing shielding, private transfers and unshielding. GBT's <code>mode: "proposal"</code> accepts the complete candidate block in <code>data</code>. For a new candidate extending the node's current tip, a <code>null</code> result means the validation performed by this mode succeeded; proof of work is not checked. This includes transaction validity, coinbase value and transaction/witness commitments. A solved block is then submitted in full with <code>submitblock</code>; a newly accepted block returns <code>null</code>. Rejection or an inconclusive response must not be treated as acceptance.</p>
+<p>Coinbase rewards remain transparent. Paying miners later to Bech32x addresses (<code>nito1x...</code>) is an optional payout feature, supported through the Core wallet. A pool can include Orchard transactions while continuing to pay every miner to a transparent address. Supporting private payout addresses is not a condition for mining Orchard-containing blocks.</p>
+<p>The <a href="https://github.com/NitoNetwork/Nito-core/blob/69b51fff6d9f4827cfbc3b74e0604541ba47cf8e/src/rpc/mining.cpp" target="_blank" rel="noopener">mining interface</a> and <a href="https://github.com/NitoNetwork/Nito-core/blob/69b51fff6d9f4827cfbc3b74e0604541ba47cf8e/doc/nito/mining-pool-compatibility.md" target="_blank" rel="noopener">pool compatibility requirements</a> provide the detailed integration reference.</p>
+<h3>5.4 Weight and Virtual Size</h3>
 <p>Let <strong>B</strong> be stripped size in bytes and <strong>F</strong> be full serialized size. Stripped data includes the Orchard effects, while full data additionally includes applicable transparent witness and private authorization data. Weight is:</p>
 <p class="formula"><code>W = 3 * B + F</code></p>
 <p>Equivalently, each stripped byte contributes four weight units and each additional byte contributes one. The block weight limit is 800,000. A block with entirely non-witness data is consequently limited to approximately 200,000 bytes, including block overhead.</p>
@@ -462,7 +473,7 @@
 <p class="formula"><code>V_private = 5,000 + 1,000 * n</code></p>
 <p class="formula"><code>V_policy = max(V_serial, V_private)</code></p>
 <p>For a transaction without Orchard, V_private is zero. For example, a two-action bundle has a private verification floor of 7,000 virtual bytes; a larger serialized or signature-operation cost still takes precedence. These are policy units, not a claim that the transaction occupies that many bytes on disk.</p>
-<h3>5.3 Relay and Fee Selection</h3>
+<h3>5.5 Relay and Fee Selection</h3>
 <p>The fee rate is the transaction fee divided by its policy virtual size. Relay thresholds, dust rules, mempool limits and replacement rules are local policies. They affect propagation and miner selection; they do not all define block validity. A transaction accepted by one node is not guaranteed immediate inclusion by a miner.</p>
 <p>Private conflicts are detected through nullifiers as well as transparent inputs. Unconfirmed transactions may be evicted, replaced under applicable policy or invalidated by a competing confirmed spend. A mempool entry is not a settled payment. The fee is public even when both payment endpoints are private, as the conservation equation in Section 7 shows.</p></section>
 <section class="chapter" id="orchard-cryptography" data-title="6. Orchard Cryptography" aria-labelledby="orchard-cryptography-title"><h2 id="orchard-cryptography-title" tabindex="-1">6. Orchard Cryptography</h2><h3>6.1 Notes, Commitments and Anchors</h3>

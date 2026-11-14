@@ -1,26 +1,10 @@
-# NITO Whitepaper
+# Nito Whitepaper
 
-The official whitepaper for the **NITO** blockchain is now live.
+Nito is a proof-of-work blockchain for transparent and optional private payments.
 
-📄 **Version:** 1.1
-📅 **Released:** July 2025
+The whitepaper explains the network, monetary policy, mining, Orchard privacy and wallet security, with technical definitions and worked examples.
 
----
+- [Read online](https://nitonetwork.github.io/Nito-Whitepaper/)
+- [Download the PDF](./Nito_Whitepaper.pdf)
 
-## View the Whitepaper
-
-- [**View in browser (mobile-friendly)**](https://nitonetwork.github.io/Nito-Whitepaper/)
-- [Download PDF](./Nito_Whitepaper.pdf)
-- [Download DOCX](./Nito_Whitepaper.docx)
-
----
-
-## Join the Discussion
-
-Got ideas or feedback?
-
-([Nito-Whitepaper-v1.0/discussions](https://github.com/NitoNetwork/Nito-Whitepaper-v1.0/discussions/1))
-
----
-
-## Built by the NITO community
+[Nito website](https://nito.network) · [Nito Core](https://github.com/NitoNetwork/Nito-core)
